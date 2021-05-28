@@ -167,3 +167,174 @@ public class User {
 </build>
 ```
 
+
+
+# 3.配置解析
+
+## 1. 核心配置文件
+
+* mybatis-config.xml
+
+* MyBatis 的配置文件包含了会深深影响 MyBatis 行为的设置和属性信息
+
+  ```xml
+  configuration（配置）
+  
+  - [properties（属性）](https://mybatis.org/mybatis-3/zh/configuration.html#properties)
+  - [settings（设置）](https://mybatis.org/mybatis-3/zh/configuration.html#settings)
+  - [typeAliases（类型别名）](https://mybatis.org/mybatis-3/zh/configuration.html#typeAliases)
+  - [typeHandlers（类型处理器）](https://mybatis.org/mybatis-3/zh/configuration.html#typeHandlers)
+  - [objectFactory（对象工厂）](https://mybatis.org/mybatis-3/zh/configuration.html#objectFactory)
+  - [plugins（插件）](https://mybatis.org/mybatis-3/zh/configuration.html#plugins)
+  - environments（环境配置）
+    - environment（环境变量）
+      - transactionManager（事务管理器）
+      - dataSource（数据源）
+  - [databaseIdProvider（数据库厂商标识）](https://mybatis.org/mybatis-3/zh/configuration.html#databaseIdProvider)
+  - [mappers（映射器）](https://mybatis.org/mybatis-3/zh/configuration.html#mappers)
+  ```
+
+  
+
+## 2. 环境配置（environment）
+
+MyBatis 可以配置成适应多种环境
+
+**不过要记住：尽管可以配置多个环境，但每个 SqlSessionFactory 实例只能选择一种环境。**
+
+MyBatis默认的事务管理器就是JDBC，数据源类型：POOLED
+
+## 3. 属性（properties）
+
+我们可以通过properties属性来实现引用配置文件
+
+这些属性可以在外部进行配置，并可以进行动态替换。你既可以在典型的 Java 属性文件中配置这些属性，也可以在 properties 元素的子元素中设置
+
+编写一个配置文件
+
+```xml
+driver=com.mysql.jdbc.Driver
+url=jdbc:mysql://localhost:3306/mybatis?useSSL=false&useUnicode=true&characterEncoding=UTF-8
+username=root
+password=1234
+```
+
+在核心配置文件中引入
+
+```xml
+<properties resource="org/mybatis/example/config.properties">
+  <property name="username" value="dev_user"/>
+  <property name="password" value="F2Fa3!33TYyg"/>
+</properties>
+```
+
+
+
+<img src="C:\Users\GX\AppData\Roaming\Typora\typora-user-images\image-20210528213624948.png" alt="image-20210528213624948" style="zoom:150%;" />
+
+* 可以直接引入外部文件
+* 可以在其中增加一些属性配置
+* 如果两个文件有同一个字段，优先使用外部配置文件的
+
+## 4.类型别名（typeAliases）
+
+* 类型别名是为Java类型设置一个短的名字
+
+* 存在的意义仅在于用来减少类完全限定名的冗余
+
+  ```xml
+    <typeAliases>
+      <typeAlias type="com.tongy.pojo.User" alias="User"/>
+    </typeAliases>
+  ```
+
+  也可以指定一个包名，MyBatis会在包名下面搜索需要的Java Bean，比如
+
+  扫描实体类的包，它的默认别名就为这个类的类名，首字母小写
+
+  ```xml
+    <typeAliases>
+      <package name="com.tongy.pojo"/>
+    </typeAliases>
+  ```
+
+  在实体类较少的时候，使用第一行中
+
+  实体类比较多，建议第二种
+
+  第一种可以DIY起名，第二种则不行，如果非要改，需要在类上加注解
+
+  ```java
+  @Alias("hello")
+  ```
+
+
+
+## 5. 设置
+
+​       这是 MyBatis 中极为重要的调整设置，它们会改变 MyBatis 的  运行时行为。
+
+## 6. 映射（mappers）
+
+方式一：使用resource
+
+```xml
+<mappers>
+  <mapper resource="com/tongy/dao/UserMapper.xml"/>
+</mappers>
+```
+
+方式二：使用class
+
+```xml
+<mappers>
+  <mapper class="com.tongy.dao.UserMapper"/>
+</mappers>
+```
+
+注意点：
+
+* 接口和它的Mapper配置文件必须同名
+* 接口和它的Mapper配置文件必须在同一个包下
+
+方式三：使用扫描包进行注入绑定
+
+```xml
+<mappers>
+  <mapper class="com.tongy.dao.UserMapper"/>
+</mappers>
+```
+
+注意点：
+
+* 接口和它的Mapper配置文件必须同名
+* 接口和它的Mapper配置文件必须在同一个包下
+
+## 7. 生命周期和作用域
+
+![image-20210528224055546](C:\Users\GX\AppData\Roaming\Typora\typora-user-images\image-20210528224055546.png)
+
+不同作用域和生命周期类别是至关重要的，因为错误的使用会导致非常严重的**并发问题**。
+
+**SqlSessionFactoryBuilder**
+
+* 一旦创建了 SqlSessionFactory，就不再需要它了
+* 局部变量
+
+**SqlSessionFactory**
+
+* 可以想象成数据库连接池
+* 一旦被创建就应该在应用的运行期间一直存在，**没有任何理由丢弃它或重新创建另一个实例**
+*  SqlSessionFactory 的最佳作用域是应用作用域
+
+* 最简单的就是使用单例模式或者静态单例模式
+
+**SqlSession**
+
+* 连接到连接池的一个请求
+
+* SqlSession 的实例不是线程安全的，因此是不能被共享的，所以它的最佳的作用域是请求或方法作用域
+* 用完之后赶紧关闭，否则资源被占用
+
+![image-20210528224800276](C:\Users\GX\AppData\Roaming\Typora\typora-user-images\image-20210528224800276.png)
+

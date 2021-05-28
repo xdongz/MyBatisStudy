@@ -4,20 +4,16 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.tongy.dao.UserDao">
-    <select id="getUserList" resultType="com.tongy.pojo.User">
+    <select id="getUserList" resultType="hello">
         select * from mybatis.user
     </select>
 
-    <select id="getUserLike" resultType="com.tongy.pojo.User">
-        select * from mybatis.user where name like #{value}
+    <select id="getUserById" resultType="com.tongy.pojo.User">
+        select * from mybatis.user where id=#{id}
     </select>
 
     <update id="update" parameterType="com.tongy.pojo.User" >
         update mybatis.user set name=#{name}, pwd=#{pwd} where id=#{id}
-    </update>
-
-    <update id="update2" parameterType="map" >
-        update mybatis.user set pwd=#{userpwd} where id=#{userid}
     </update>
     
     <insert id="insert" parameterType="com.tongy.pojo.User">

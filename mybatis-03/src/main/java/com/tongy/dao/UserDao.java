@@ -7,13 +7,11 @@ import java.util.Map;
 
 public interface UserDao {
 
-    List<User> getUserLike(String value);
-
     List<User> getUserList();
 
-    int update(User user);
+    User getUserByIde(int id);
 
-    void update2(Map<String, Object> map);
+    int update(User user);
 
     int insert(User user);
 
