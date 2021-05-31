@@ -338,3 +338,134 @@ password=1234
 
 ![image-20210528224800276](C:\Users\GX\AppData\Roaming\Typora\typora-user-images\image-20210528224800276.png)
 
+# 5. 日志
+
+## 1. 日志工厂
+
+如果一个数据库操作，出现了异常，我们需要排错。日志就是最好的助手
+
+在MyBatis中绝体使用哪一个日志实现，在设置中设定
+
+**STDOUT_LOGGING标准日志输出**
+
+在MyBatis核心配置文件中，配置我们的日志
+
+```xml
+<settings>
+    <setting name="logImpl" value="STDOUT_LOGGING"/>
+</settings>
+```
+
+## 2. Log4j
+
+1.导入Log4j包
+
+```xml
+<!-- https://mvnrepository.com/artifact/log4j/log4j -->
+<dependency>
+    <groupId>log4j</groupId>
+    <artifactId>log4j</artifactId>
+    <version>1.2.17</version>
+</dependency>
+
+```
+
+2.log4j.properties
+
+```xml
+#将等级为DEBUG的日志信息输出到console和file这两个目的地，console和file的定义在下面的代码
+log4j.rootLogger=DEBUG,console,file
+
+#控制台输出的相关设置
+log4j.appender.console = org.apache.log4j.ConsoleAppender
+log4j.appender.console.Target = System.out
+log4j.appender.console.Threshold=DEBUG
+log4j.appender.console.layout = org.apache.log4j.PatternLayout
+log4j.appender.console.layout.ConversionPattern=【%c】-%m%n
+
+#文件输出的相关设置
+log4j.appender.file = org.apache.log4j.RollingFileAppender
+log4j.appender.file.File=./log/kuang.log
+log4j.appender.file.MaxFileSize=10mb
+log4j.appender.file.Threshold=DEBUG
+log4j.appender.file.layout=org.apache.log4j.PatternLayout
+log4j.appender.file.layout.ConversionPattern=【%p】【%d{yy-MM-dd}】【%c】%m%n
+
+#日志输出级别
+log4j.logger.org.mybatis=DEBUG
+log4j.logger.java.sql=DEBUG
+log4j.logger.java.sql.Statement=DEBUG
+log4j.logger.java.sql.ResultSet=DEBUG
+log4j.logger.java.sql.PreparedStatement=DEBUG
+```
+
+3. 配置log4j为日志的实现
+
+**简单使用**
+
+1. Logger.getLogger() 生成日志对象，参数为当前类的class
+2. 日志级别
+
+# 6.分页
+
+## 使用Limit分页
+
+```xml
+语法： SELECT * from user limit startIndex,pageSize;
+```
+
+使用MyBatis实现分页，核心SQL
+
+1.接口
+
+2.Mapper.xml
+
+3.测试
+
+# 7.使用注解开发
+
+1. 注解在接口上实现
+
+   ```java
+   @Select("select * from user")
+   List<User> getUsers();
+   ```
+
+2. 需要在核心配置文件中绑定接口
+3. 测试
+
+   本质：反射机制
+
+​    底层：动态代理
+
+   **关于@Param()注解**
+
+* 基本类型的参数或者String类型，需要加上
+* 引用类型不需要加
+* 如果只有一个基本类型的话，可以忽略，但建议加上
+* 我们在SQL中引用的就是我们这里的@Param()中设定的属性名
+
+  
+
+   **#{} ${} 区别**
+
+# 8.Lombok
+
+Lombok项目是一个java库，它会自动插入编辑器和构建工具中，Lombok提供了一组有用的注释，用来消除Java类中的大量样板代码。
+
+使用步骤：
+
+       1. 在IDEA中安装Lombok插件
+          2. 在项目中导入Lombok的jar包
+          3. 在实体类上加注解即可
+
+# 9.多对一处理
+
+   测试环境搭建：
+
+    1. 导入lombok
+       2. 新建实体类Teacher, Student
+       3. 建立Mapper接口
+       4. 建立Mapper.xml文件
+       5. 在核心配置文件中绑定注册我们的Mapper接口或者文件
+       6. 测试查询是否能够成功
