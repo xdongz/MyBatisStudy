@@ -455,17 +455,81 @@ Lombok项目是一个java库，它会自动插入编辑器和构建工具中，L
 
 使用步骤：
 
-       1. 在IDEA中安装Lombok插件
-          2. 在项目中导入Lombok的jar包
-          3. 在实体类上加注解即可
+      1. 在IDEA中安装Lombok插件
+      2. 在项目中导入Lombok的jar包
+      3. 在实体类上加注解即可
 
 # 9.多对一处理
 
    测试环境搭建：
 
-    1. 导入lombok
-       2. 新建实体类Teacher, Student
-       3. 建立Mapper接口
-       4. 建立Mapper.xml文件
-       5. 在核心配置文件中绑定注册我们的Mapper接口或者文件
-       6. 测试查询是否能够成功
+```xml
+1. 导入lombok
+2. 新建实体类Teacher, Student
+3. 建立Mapper接口
+4. 建立Mapper.xml文件
+5. 在核心配置文件中绑定注册我们的Mapper接口或者文件
+6. 测试查询是否能够成功
+```
+
+**按照查询嵌套处理**
+
+```xml
+<!-- 
+    思路：
+        1.查询所有的学生信息
+        2.根据查询出来的学生的tid，寻找对应的老师   子查询
+-->
+```
+
+# 10. 多对一处理
+
+**按照查询嵌套处理**
+
+
+
+**小结**
+
+1. 关联 - association 【多对一】
+2. 集合 - collection 【一对多】
+3. javaType  &  ofType
+   1. javaType 用来指定实体类中属性的类型
+   2. ofType 用来指定映射到集合中的pojo类型，泛型中的约束类型
+
+**注意点：**
+
+1. 保证SQL的可读性，尽量保证通俗易懂
+2. 注意一对多和多对一中，属性名和字段的问题
+3. 如果问题不好排查错误，可以使用日志，建议使用log4j
+
+# 11. 动态SQL
+
+==什么是动态SQL: 动态SQL就是指根据根据不同的条件生成不同的SQL语句==
+
+```xml
+如果你之前用过 JSTL 或任何基于类 XML 语言的文本处理器，你对动态 SQL 元素可能会感觉似曾相识。在 MyBatis 之前的版本中，需要花时间了解大量的元素。借助功能强大的基于 OGNL 的表达式，MyBatis 3 替换了之前的大部分元素，大大精简了元素种类，现在要学习的元素种类比原来的一半还要少。
+
+if
+choose (when, otherwise)
+trim (where, set)
+foreach
+```
+
+**搭建环境**
+
+```sql
+CREATE TABLE `blog`(
+`id` VARCHAR(50) NOT NULL COMMENT 博客id,
+`title` VARCHAR(100) NOT NULL COMMENT 博客标题,
+`author` VARCHAR(30) NOT NULL COMMENT 博客作者,
+`create_time` DATETIME NOT NULL COMMENT 创建时间,
+`views` INT(30) NOT NULL COMMENT 浏览量
+)ENGINE=INNODB DEFAULT CHARSET=utf8
+```
+
+创建一个基础工程
+
+1. 导包
+2. 编写配置文件
+3. 编写实体类
+4. 编写实体类对应的Mapper接口和Mapper.xml
