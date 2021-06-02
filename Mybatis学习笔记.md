@@ -601,7 +601,7 @@ trim (where, set)
 foreach
 ```
 
-**搭建环境**
+## **搭建环境**
 
 ```sql
 CREATE TABLE `blog`(
@@ -619,3 +619,21 @@ CREATE TABLE `blog`(
 2. 编写配置文件
 3. 编写实体类
 4. 编写实体类对应的Mapper接口和Mapper.xml
+
+## if
+
+## choose (when,  otherwise)
+
+## trim (where, set)
+
+## SQL片段
+
+有时候我们可能会将一些功能的部分抽取出来，方便复用
+
+1. 使用SQL标签抽取公共的部分
+2. 在需要使用的地方使用include标签引用即可
+
+注意事项：
+
+* 最好基于单表来定义SQL片段
+* 不要存在where标签
