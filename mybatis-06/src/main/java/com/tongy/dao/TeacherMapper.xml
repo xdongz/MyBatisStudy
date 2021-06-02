@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.tongy.dao.TeacherMapper">
+
+    <select id="getTeacher2" resultMap="TeacherStudent2">
+        select * from teacher where id=#{tid}
+    </select>
+
+    <resultMap id="TeacherStudent2" type="com.tongy.pojo.Teacher">
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <collection property="students" javaType="ArrayList" ofType="com.tongy.pojo.Student" select="getStudentByTeacherId" column="id"/>
+    </resultMap>
+
+    <select id="getStudentByTeacherId" resultType="com.tongy.pojo.Student">
+        select * from student where tid=#{tid}
+    </select>
+
+
+    <select id="getTeacher" resultMap="TeacherStudent">
+        SELECT s.id sid, s.name sname, t.id tid,t.name tname
+        FROM student s, teacher t
+        WHERE s.tid=t.id and t.id=#{tid};
+    </select>
+    
+    <resultMap id="TeacherStudent" type="com.tongy.pojo.Teacher">
+        <result property="id" column="tid"/>
+        <result property="name" column="tname"/>
+        <collection property="students" ofType="com.tongy.pojo.Student">
+            <result property="id" column="sid"/>
+            <result property="name" column="sname"/>
+            <result property="tid" column="tid"/>
+        </collection>
+    </resultMap>
+</mapper>

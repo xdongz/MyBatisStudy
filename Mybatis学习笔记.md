@@ -475,16 +475,102 @@ Lombok项目是一个java库，它会自动插入编辑器和构建工具中，L
 **按照查询嵌套处理**
 
 ```xml
+<!--SQL Mapper xml file -->
 <!-- 
     思路：
         1.查询所有的学生信息
         2.根据查询出来的学生的tid，寻找对应的老师   子查询
 -->
+    <select id="getStudents" resultMap="StudentTeacher">
+        select * from student
+    </select>
+    <resultMap id="StudentTeacher" type="com.tongy.pojo.Student">
+        <!--property中填写的是Student实体类中定义的字段
+            column中填写的是对应的数据库中的字段
+         -->
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <!--teacher是一个对象，需要用javaType指定它的类型-->
+        <association property="teacher" javaType="com.tongy.pojo.Teacher" column="tid" select="getTeacher"/>
+    </resultMap>
+
+    <select id="getTeacher" resultType="com.tongy.pojo.Teacher">
+        select * from teacher where id=#{id}
+    </select>
 ```
+
+**按照结果嵌套处理**
+
+```xml
+    <select id="getStudents2" resultMap="StudentTeacher2">
+        select s.id sid, s.name sname, t.name tname
+        from student s, teacher t
+        where s.tid=t.id;
+    </select>
+
+    <resultMap id="StudentTeacher2" type="com.tongy.pojo.Student">
+        <result property="id" column="sid"/>
+        <result property="name" column="sname"/>
+        <association property="teacher" javaType="com.tongy.pojo.Teacher">
+            <result property="name" column="tname"/>
+        </association>
+    </resultMap>
+```
+
+回顾MySQL嵌套查询
+
+* 子查询
+* 联表查询
+
+
 
 # 10. 多对一处理
 
 **按照查询嵌套处理**
+
+```xml
+<select id="getTeacher2" resultMap="TeacherStudent2">
+        select * from teacher where id=#{tid}
+    </select>
+
+    <resultMap id="TeacherStudent2" type="com.tongy.pojo.Teacher">
+        <!-- id和name相同，下面这两行可以省略-->
+        <result property="id" column="id"/>
+        <result property="name" column="name"/>
+        <collection property="students" javaType="ArrayList" ofType="com.tongy.pojo.Student" select="getStudentByTeacherId" column="id"/>
+    </resultMap>
+
+    <!--getStudentByTeacherId 不需要在class中定义-->
+    <select id="getStudentByTeacherId" resultType="com.tongy.pojo.Student">
+        select * from student where tid=#{tid}
+    </select>
+```
+
+
+
+**按照结果嵌套处理**
+
+```xml
+    <select id="getTeachers" resultType="com.tongy.pojo.Teacher">
+        select * from teacher
+    </select>
+    
+    <select id="getTeacher" resultMap="TeacherStudent">
+        SELECT s.id sid, s.name sname, t.id tid,t.name tname
+        FROM student s, teacher t
+        WHERE s.tid=t.id and t.id=#{tid};
+    </select>
+    
+    <resultMap id="TeacherStudent" type="com.tongy.pojo.Teacher">
+        <result property="id" column="tid"/>
+        <result property="name" column="tname"/>
+        <collection property="students" ofType="com.tongy.pojo.Student">
+            <result property="id" column="sid"/>
+            <result property="name" column="sname"/>
+            <result property="tid" column="tid"/>
+        </collection>
+    </resultMap>
+```
 
 
 
