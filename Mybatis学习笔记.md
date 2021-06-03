@@ -622,7 +622,44 @@ CREATE TABLE `blog`(
 
 ## if
 
+```xml
+   <select id="queryBlogIf" resultType="com.tongy.pojo.Blog" parameterType="map">
+        select * from blog
+        <where>
+            <if test="title!=null">
+                title=#{title}
+            </if>
+            <if test="author!=null">
+                and author=#{author}
+            </if>
+        </where>
+    </select>
+```
+
+
+
 ## choose (when,  otherwise)
+
+```xml
+  <select id="queryBlogChoose" resultType="com.tongy.pojo.Blog" parameterType="map">
+        select * from blog
+        <where>
+            <choose>
+                <when test="title!=null">
+                    title=#{title}
+                </when>
+                <when test="author!=null">
+                    author=#{author}
+                </when>
+                <otherwise>
+                    views=#{views}
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+```
+
+
 
 ## trim (where, set)
 
@@ -631,9 +668,319 @@ CREATE TABLE `blog`(
 有时候我们可能会将一些功能的部分抽取出来，方便复用
 
 1. 使用SQL标签抽取公共的部分
+
+   ```xml
+   <sql id="if-title-author">
+      <if test="title != null">
+         title = #{title}
+      </if>
+      <if test="author != null">
+         and author = #{author}
+      </if>
+   </sql>
+   ```
+
+   
+
 2. 在需要使用的地方使用include标签引用即可
+
+   ```xml
+   <select id="queryBlogIf" parameterType="map" resultType="blog">
+     select * from blog
+      <where>
+          <!-- 引用 sql 片段，如果refid 指定的不在本文件中，那么需要在前面加上 namespace -->
+          <include refid="if-title-author"></include>
+          <!-- 在这里还可以引用其他的 sql 片段 -->
+      </where>
+   </select>
+   ```
+
+   
 
 注意事项：
 
 * 最好基于单表来定义SQL片段
 * 不要存在where标签
+
+## Foreach
+
+1. 编写接口
+
+   ```java
+   List<Blog> queryBlogForeach(Map map);
+   ```
+
+   
+
+2. 编写SQL语句
+
+   ```xml
+   <select id="queryBlogForeach" parameterType="map" resultType="blog">
+     select * from blog
+      <where>
+          <!--
+          collection:指定输入对象中的集合属性
+          item:每次遍历生成的对象
+          open:开始遍历时的拼接字符串
+          close:结束时拼接的字符串
+          separator:遍历对象之间需要拼接的字符串
+        -->
+          <foreach collection="titles"  item="title" open="and (" close=")" separator="or">
+             title=#{title}
+          </foreach>
+      </where>
+   </select>
+   ```
+
+   
+
+3. 测试
+
+   ```java
+       @Test
+       public void testQueryBlogForeach() throws Exception {
+           SqlSession sqlSession = MybatisUtils.getSqlSession();
+           BlogMapper mapper = sqlSession.getMapper(BlogMapper.class);
+           List<String> titles = new ArrayList<String>();
+           titles.add("java 编程");
+           titles.add("Spring如此简单");
+           Map<String, List<String>> map = new HashMap<String, List<String>>();
+           map.put("titles", titles);
+           List<Blog> blogs = mapper.queryBlogForeach(map);
+           for (Blog blog: blogs) {
+               System.out.println(blog);
+           }
+           sqlSession.close();
+       }
+   ```
+
+
+
+
+
+# 12. 缓存
+
+## 12.1简介
+
+1、什么是缓存 [ Cache ]？
+
+- 存在内存中的临时数据。
+- 将用户经常查询的数据放在缓存（内存）中，用户去查询数据就不用从磁盘上(关系型数据库数据文件)查询，从缓存中查询，从而提高查询效率，解决了高并发系统的性能问题。
+
+2、为什么使用缓存？
+
+- 减少和数据库的交互次数，减少系统开销，提高系统效率。
+
+3、什么样的数据能使用缓存？
+
+- 经常查询并且不经常改变的数据
+
+## 12.2 Mybatis缓存
+
+- MyBatis包含一个非常强大的查询缓存特性，它可以非常方便地定制和配置缓存。缓存可以极大的提升查询效率。
+
+- MyBatis系统中默认定义了两级缓存：**一级缓存**和**二级缓存**
+
+- - 默认情况下，只有一级缓存开启。（SqlSession级别的缓存，也称为本地缓存）
+  - 二级缓存需要手动开启和配置，他是基于namespace级别的缓存。
+  - 为了提高扩展性，MyBatis定义了缓存接口Cache。我们可以通过实现Cache接口来自定义二级缓存
+
+## 12.3 一级缓存
+
+一级缓存也叫本地缓存：
+
+- 与数据库同一次会话期间查询到的数据会放在本地缓存中。
+- 以后如果需要获取相同的数据，直接从缓存中拿，没必须再去查询数据库；
+
+```java
+    @Test
+    public void test() throws Exception {
+        SqlSession session = MybatisUtils.getSession();
+        UserMapper mapper = session.getMapper(UserMapper.class);
+        User user1 = mapper.getUserById(1);
+        System.out.println(user1);
+
+        System.out.println("===============");
+        User user2 = mapper.getUserById(1);
+        // 返回结果为true
+        System.out.println(user1 == user2);
+
+        session.close();
+    }
+```
+
+**一级缓存失效的四种情况**
+
+一级缓存是SqlSession级别的缓存，是一直开启的，我们关闭不了它；
+
+一级缓存失效情况：没有使用到当前的一级缓存，效果就是，还需要再向数据库中发起一次查询请求！
+
+1. sqlSession不同
+
+```java
+@Test
+public void testQueryUserById(){
+   SqlSession session = MybatisUtils.getSession();
+   SqlSession session2 = MybatisUtils.getSession();
+   UserMapper mapper = session.getMapper(UserMapper.class);
+   UserMapper mapper2 = session2.getMapper(UserMapper.class);
+
+   User user = mapper.queryUserById(1);
+   System.out.println(user);
+   User user2 = mapper2.queryUserById(1);
+   System.out.println(user2);
+    // false
+   System.out.println(user==user2);
+
+   session.close();
+   session2.close();
+}
+```
+
+观察结果：发现发送了两条SQL语句！
+
+结论：**每个sqlSession中的缓存相互独立**
+
+2. sqlSession相同，查询条件不同
+
+```java
+@Test
+public void testQueryUserById(){
+   SqlSession session = MybatisUtils.getSession();
+   UserMapper mapper = session.getMapper(UserMapper.class);
+   UserMapper mapper2 = session.getMapper(UserMapper.class);
+
+   User user = mapper.queryUserById(1);
+   System.out.println(user);
+   User user2 = mapper2.queryUserById(2);
+   System.out.println(user2);
+    // false
+   System.out.println(user==user2);
+
+   session.close();
+}
+```
+
+观察结果：发现发送了两条SQL语句！很正常的理解
+
+结论：**当前缓存中，不存在这个数据**
+
+3. sqlSession相同，两次查询之间执行了增删改操作！
+
+```java
+@Test
+public void testQueryUserById(){
+   SqlSession session = MybatisUtils.getSession();
+   UserMapper mapper = session.getMapper(UserMapper.class);
+
+   User user = mapper.queryUserById(1);
+   System.out.println(user);
+
+   HashMap map = new HashMap();
+   map.put("name","kuangshen");
+   map.put("id",4);
+   mapper.updateUser(map);
+
+   User user2 = mapper.queryUserById(1);
+   System.out.println(user2);
+   // false
+   System.out.println(user==user2);
+
+   session.close();
+}
+```
+
+4. sqlSession相同，手动清除一级缓存
+
+```java
+@Test
+public void testQueryUserById(){
+   SqlSession session = MybatisUtils.getSession();
+   UserMapper mapper = session.getMapper(UserMapper.class);
+
+   User user = mapper.queryUserById(1);
+   System.out.println(user);
+
+   session.clearCache();//手动清除缓存
+
+   User user2 = mapper.queryUserById(1);
+   System.out.println(user2);
+   // false
+   System.out.println(user==user2);
+
+   session.close();
+}
+```
+
+## 12.4 二级缓存
+
+- 二级缓存也叫全局缓存，一级缓存作用域太低了，所以诞生了二级缓存
+
+- 基于namespace级别的缓存，一个名称空间，对应一个二级缓存；
+
+- 工作机制
+
+- - 一个会话查询一条数据，这个数据就会被放在当前会话的一级缓存中；
+  - 如果当前会话关闭了，这个会话对应的一级缓存就没了；但是我们想要的是，会话关闭了，一级缓存中的数据被保存到二级缓存中；
+  - 新的会话查询信息，就可以从二级缓存中获取内容；
+  - 不同的mapper查出的数据会放在自己对应的缓存（map）中；
+
+**使用步骤：**
+
+1. 开启全局缓存 【mybatis-config.xml】
+
+   ```xml
+   <setting name="cacheEnabled" value="true"/>
+   ```
+
+2. 去每个mapper.xml中配置使用二级缓存，这个配置非常简单；【xxxMapper.xml】
+
+   ```xml
+   <cache/>
+   
+   官方示例=====>查看官方文档
+   <cache
+    eviction="FIFO"
+    flushInterval="60000"
+    size="512"
+    readOnly="true"/>
+   这个更高级的配置创建了一个 FIFO 缓存，每隔 60 秒刷新，最多可以存储结果对象或列表的 512 个引用，而且返回的对象被认为是只读的，因此对它们进行修改可能会在不同线程中的调用者产生冲突。
+   ```
+
+3. 代码测试
+
+   - 所有的实体类先实现序列化接口
+   - 测试代码
+
+   ```java
+   @Test
+   public void testQueryUserById(){
+      SqlSession session = MybatisUtils.getSession();
+      SqlSession session2 = MybatisUtils.getSession();
+   
+      UserMapper mapper = session.getMapper(UserMapper.class);
+      UserMapper mapper2 = session2.getMapper(UserMapper.class);
+   
+      User user = mapper.queryUserById(1);
+      System.out.println(user);
+      session.close();
+   
+      User user2 = mapper2.queryUserById(1);
+      System.out.println(user2);
+      System.out.println(user==user2);
+   
+      session2.close();
+   }
+   ```
+
+   
+
+**结论**
+
+- 只要开启了二级缓存，我们在同一个Mapper中的查询，可以在二级缓存中拿到数据
+- 查出的数据都会被默认先放在一级缓存中
+- 只有会话提交或者关闭以后，一级缓存中的数据才会转到二级缓存中
+
+## 12.5 缓存原理图
+
+![image-20210603212243753](C:\Users\GX\AppData\Roaming\Typora\typora-user-images\image-20210603212243753.png)
